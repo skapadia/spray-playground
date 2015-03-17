@@ -57,10 +57,10 @@ trait ExampleApi {
   protected def getAccount(id: Long): Future[Option[Account]]
 
   protected def accountToHAL(account: Account): HALResponse[AccountId] = {
-    val halPerson = HALResponse(account.primary, Map())
-    //val halTransactions = acct.transactions map { HALResponse(_, Map()) }
-    val halTransaction = HALResponse(account.transactions.head, Map())
-    HALResponse(AccountId(account.id), Map("person" -> halPerson, "transactions" -> halTransaction))
+    val halPerson = HALResponse(account.primary)
+    val halTransactions = account.transactions map { HALResponse(_) }
+    //val halTransaction = HALResponse(account.transactions.head, Map())
+    HALResponse(AccountId(account.id), Some(Map("person" -> List(halPerson), "transactions" -> halTransactions)))
   }
 
 }
