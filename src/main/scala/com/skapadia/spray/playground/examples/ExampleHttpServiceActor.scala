@@ -6,9 +6,9 @@ import scala.util.{ Failure, Success }
 import spray.http._
 import spray.httpx.unmarshalling._
 import spray.httpx.marshalling._
+import spray.httpx.SprayJsonSupport
 import spray.json._
 import spray.util.{ LoggingContext, SprayActorLogging }
-import spray.httpx.SprayJsonSupport
 
 import spray.routing._
 import spray.routing.directives.BasicDirectives._
@@ -44,6 +44,10 @@ object DomainMarshalling extends DefaultJsonProtocol {
   implicit val accountIdFormat = jsonFormat1(AccountId)
 }
 
+import HALable._
+import DomainMarshalling._
+import SprayJsonSupport._
+
 trait ExampleApi {
 
   implicit protected def executionContext: ExecutionContext
@@ -52,26 +56,26 @@ trait ExampleApi {
 
   protected def getAccount(id: Long): Future[Option[Account]]
 
-}
-
-trait ExampleApiRoutes extends HttpServiceBase with ExampleApi with ExampleOperations {
-
-  import HALable._
-  import DomainMarshalling._
-  import SprayJsonSupport._
-
-  def toHal(account: Account) = {
+  protected def accountToHAL(account: Account): HALResponse[AccountId] = {
     val halPerson = HALResponse(account.primary, Map())
     //val halTransactions = acct.transactions map { HALResponse(_, Map()) }
     val halTransaction = HALResponse(account.transactions.head, Map())
     HALResponse(AccountId(account.id), Map("person" -> halPerson, "transactions" -> halTransaction))
   }
 
+}
+
+trait ExampleApiRoutes extends HttpServiceBase with ExampleApi with ExampleOperations {
+
   val routes = {
     pathPrefix("accounts") {
       path(LongNumber) { id =>
         pathEndOrSingleSlash {
-          get { complete(getAccount(id).map(_.map(toHal(_)))) }
+          get { 
+            complete { 
+              getAccount(id) map { _.map { accountToHAL(_) } } 
+            } 
+          }
         }
       }
     }
@@ -85,5 +89,6 @@ trait ExampleOperations {
   protected def getAccount(id: Long): Future[Option[Account]] = {
     Future.successful(Some(Account(id, Person(1, "Joe", "Schmoe"), List(Transaction(1, 100.0D)))))
   }
+
 }
 
