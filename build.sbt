@@ -9,8 +9,18 @@ lazy val commonSettings = Seq(
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
   settings(
-    name := "spray-playground"
-  )
+    name := "spray-playground")
+
+scalacOptions ++= Seq(
+  "-Xlint",
+  "-deprecation",
+  "-unchecked",
+  "-feature",
+  "-Xfatal-warnings",
+  "-Ywarn-unused-import"
+)
+
+scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Ywarn-unused-import"))
 
 libraryDependencies ++= Seq(sprayDeps, akkaDeps, scalatestDeps, loggingDeps).flatten
 

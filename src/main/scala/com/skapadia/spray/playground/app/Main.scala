@@ -1,4 +1,4 @@
-package com.skapadia.spray.app
+package com.skapadia.spray.playground.app
 
 import java.net.InetSocketAddress
 
@@ -11,7 +11,7 @@ import akka.io.{ IO, Tcp }
 
 import spray.can.Http
 
-import com.skapadia.spray.examples.ExampleHttpServiceActor
+import com.skapadia.spray.playground.examples.ExampleHttpServiceActor
 
 object Main extends App {
 

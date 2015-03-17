@@ -1,15 +1,15 @@
-package com.skapadia.spray.examples
+package com.skapadia.spray.playground.examples
 
 import scala.concurrent._
 import scala.util.{ Failure, Success }
 
-import spray.http._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 import spray.util.{ LoggingContext, SprayActorLogging }
 
 import spray.routing._
-import spray.routing.directives.BasicDirectives._
+
+import com.skapadia.spray.playground.hal._
 
 import akka.actor.{ Actor, ActorLogging, ActorSystem }
 
@@ -29,12 +29,20 @@ class ExampleHttpServiceActor extends HttpServiceActor
 }
 
 case class Person(id: Long, firstName: String, lastName: String)
-case class Account(id: Long, primary: Person)
+case class Transaction(id: Long, amount: Double)
+case class Account(id: Long, primary: Person, transactions: Seq[Transaction])
+case class AccountId(id: Long)
 
-object DomainMarshalling extends DefaultJsonProtocol with SprayJsonSupport {
+object DomainMarshalling extends DefaultJsonProtocol {
   implicit val personFormat = jsonFormat3(Person)
-  implicit val accountFormat = jsonFormat2(Account)
+  implicit val transactionFormat = jsonFormat2(Transaction)
+  implicit val accountFormat = jsonFormat3(Account)
+  implicit val accountIdFormat = jsonFormat1(AccountId)
 }
+
+import HALable._
+import DomainMarshalling._
+import SprayJsonSupport._
 
 trait ExampleApi {
 
@@ -44,17 +52,26 @@ trait ExampleApi {
 
   protected def getAccount(id: Long): Future[Option[Account]]
 
+  protected def accountToHAL(account: Account): HALResponse[AccountId] = {
+    val halPerson = HALResponse(account.primary)
+    val halTransactions = account.transactions map { HALResponse(_) }
+    //val halTransaction = HALResponse(account.transactions.head, Map())
+    HALResponse(AccountId(account.id), Some(Map("person" -> List(halPerson), "transactions" -> halTransactions)))
+  }
+
 }
 
 trait ExampleApiRoutes extends HttpServiceBase with ExampleApi with ExampleOperations {
-
-  import DomainMarshalling._
 
   val routes = {
     pathPrefix("accounts") {
       path(LongNumber) { id =>
         pathEndOrSingleSlash {
-          get { complete(getAccount(id)) }
+          get { 
+            complete { 
+              getAccount(id) map { _.map { accountToHAL(_) } } 
+            } 
+          }
         }
       }
     }
@@ -66,7 +83,8 @@ trait ExampleOperations {
   implicit protected def executionContext: ExecutionContext
 
   protected def getAccount(id: Long): Future[Option[Account]] = {
-    Future.successful(Some(Account(id, Person(1, "Joe", "Schmoe"))))
+    Future.successful(Some(Account(id, Person(1, "Joe", "Schmoe"), List(Transaction(1, 100.0D)))))
   }
+
 }
 
