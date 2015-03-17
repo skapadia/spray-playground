@@ -3,15 +3,11 @@ package com.skapadia.spray.playground.examples
 import scala.concurrent._
 import scala.util.{ Failure, Success }
 
-import spray.http._
-import spray.httpx.unmarshalling._
-import spray.httpx.marshalling._
 import spray.httpx.SprayJsonSupport
 import spray.json._
 import spray.util.{ LoggingContext, SprayActorLogging }
 
 import spray.routing._
-import spray.routing.directives.BasicDirectives._
 
 import com.skapadia.spray.playground.hal._
 
